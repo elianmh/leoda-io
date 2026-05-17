@@ -1,0 +1,19 @@
+{
+  "name": "leoda-io-marketplace",
+  "version": "0.2.0",
+  "description": "Leoda.io — pipeline automatizado de marketing visual con IA generativa premium. Pérgolas modernas para tu marca: briefs, imágenes, videos cinematográficos con audio nativo + lip-sync, voice cloning, SFX, captions bilingües.",
+  "owner": {
+    "name": "Elian",
+    "email": "elianmh21@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "leoda-io",
+      "source": "./",
+      "description": "Pipeline de marketing visual con Nano Banana, Seedance 2.0 (audio nativo + lip-sync), MiniMax voice clone, Stable Audio SFX, ElevenLabs TTS. Briefs bilingües, imágenes hero, videos cinematográficos hasta 15s en un solo plano, voces clonadas, sound design, captions ES+EN, calendario semanal.",
+      "version": "0.2.0",
+      "category": "marketing",
+      "tags": ["marketing", "video", "image-generation", "voice-cloning", "social-media", "bilingual", "fal-ai"]
+    }
+  ]
+}

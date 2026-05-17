@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leoda.io — Marketing visual con IA, en 5 minutos por $4</title>
+<meta name="description" content="Plugin para Claude Cowork que convierte texto en reels cinematográficos con audio nativo, voz clonada y sound design. Sin diseñador, sin editor, sin estudio.">
+<meta property="og:title" content="Leoda.io — Marketing visual con IA premium">
+<meta property="og:description" content="De una idea de producto a un reel cinematográfico listo para subir, en 5 minutos, por $4 USD.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --fg: #f5f5f5;
+    --muted: #888;
+    --accent: #f0c382;
+    --card: #141414;
+    --border: #222;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* HERO */
+  .hero {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.85)), url('assets/hero-bg.jpg') center/cover;
+    position: relative;
+  }
+  .hero-content { text-align: center; padding: 80px 0; }
+  .badge {
+    display: inline-block;
+    padding: 6px 14px;
+    background: rgba(240,195,130,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(240,195,130,0.3);
+    border-radius: 999px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: clamp(40px, 7vw, 80px);
+    font-weight: 700;
+    letter-spacing: -2px;
+    margin-bottom: 24px;
+    line-height: 1.05;
+  }
+  h1 span.accent { color: var(--accent); }
+  .hero-sub {
+    font-size: clamp(18px, 2.2vw, 22px);
+    color: var(--muted);
+    max-width: 720px;
+    margin: 0 auto 40px;
+  }
+  .cta-row { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-secondary { background: var(--card); color: var(--fg); border: 1px solid var(--border); }
+  .btn:hover { transform: translateY(-2px); }
+
+  /* SECTIONS */
+  section { padding: 100px 0; }
+  section h2 {
+    font-size: clamp(32px, 4.5vw, 48px);
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+  section .lead {
+    text-align: center;
+    color: var(--muted);
+    font-size: 18px;
+    max-width: 680px;
+    margin: 0 auto 60px;
+  }
+
+  /* DEMOS */
+  .demos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+  }
+  .demo-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .demo-card video {
+    width: 100%;
+    aspect-ratio: 9/16;
+    object-fit: cover;
+    display: block;
+    background: #000;
+  }
+  .demo-card-body { padding: 20px; }
+  .demo-card h3 { font-size: 18px; margin-bottom: 6px; }
+  .demo-card .meta { font-size: 13px; color: var(--muted); }
+  .demo-card .cost {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(240,195,130,0.12);
+    color: var(--accent);
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 12px;
+    font-weight: 600;
+  }
+
+  /* SKILLS */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .skill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 24px;
+    border-radius: 12px;
+  }
+  .skill code {
+    display: inline-block;
+    background: rgba(240,195,130,0.12);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: "SF Mono", monospace;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .skill p { color: var(--muted); font-size: 15px; }
+
+  /* HOW */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+    margin-top: 40px;
+  }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 28px;
+    border-radius: 12px;
+    position: relative;
+  }
+  .step-num {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    color: #000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    margin-bottom: 16px;
+  }
+  .step h3 { font-size: 18px; margin-bottom: 8px; }
+  .step p { color: var(--muted); font-size: 15px; }
+
+  /* PRICING */
+  .pricing-table {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .pricing-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .pricing-row:last-child { border-bottom: none; }
+  .pricing-row.featured { background: rgba(240,195,130,0.06); }
+  .pricing-row .label { color: var(--fg); }
+  .pricing-row .price { color: var(--accent); font-weight: 600; }
+
+  /* CTA FINAL */
+  .cta-final {
+    text-align: center;
+    background: linear-gradient(180deg, var(--bg), var(--card));
+    border-top: 1px solid var(--border);
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 40px 0;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 14px;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="container hero-content">
+    <span class="badge">⚡ v0.2.0 · Plugin para Claude Cowork</span>
+    <h1>Marketing visual con IA <span class="accent">en 5 minutos</span></h1>
+    <p class="hero-sub">De una idea de producto a un reel cinematográfico listo para subir.<br>Sin diseñador, sin editor, sin estudio. Desde $4 USD por campaña.</p>
+    <div class="cta-row">
+      <a href="https://github.com/TU-USUARIO/leoda-io" class="btn btn-primary">⭐ Instalar gratis</a>
+      <a href="#demos" class="btn btn-secondary">Ver demos</a>
+    </div>
+  </div>
+</section>
+
+<section id="demos">
+  <div class="container">
+    <h2>Demos reales</h2>
+    <p class="lead">Estos reels se generaron 100% con Leoda.io. Tiempo de producción: 3-10 minutos. Costo: $0.40 - $4.58 USD.</p>
+    <div class="demos-grid">
+      <div class="demo-card">
+        <video src="assets/demo-ortiz-15s.mp4" controls muted loop playsinline></video>
+        <div class="demo-card-body">
+          <h3>Time Manipulator OneShot</h3>
+          <p class="meta">Ortiz Remodeling · 15s · 1080p · Audio nativo</p>
+          <span class="cost">$4.58 USD</span>
+        </div>
+      </div>
+      <div class="demo-card">
+        <video src="assets/demo-bencomo-brand.mp4" controls muted loop playsinline></video>
+        <div class="demo-card-body">
+          <h3>Brand Film cinematográfico</h3>
+          <p class="meta">Bencomo Studio · 14s · 10 escenas con xfades</p>
+          <span class="cost">$4.40 USD</span>
+        </div>
+      </div>
+      <div class="demo-card">
+        <video src="assets/demo-bencomo-logo.mp4" controls muted loop playsinline></video>
+        <div class="demo-card-body">
+          <h3>Logo Reveal</h3>
+          <p class="meta">Bencomo Studio · 12s · letras emergiendo</p>
+          <span class="cost">$0.40 USD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background: var(--card);">
+  <div class="container">
+    <h2>Los 10 skills</h2>
+    <p class="lead">Cada skill es un comando que ejecutas en tu chat de Cowork. Compón el flujo que necesites o usa <code>/pipeline-completo</code> para todo de una.</p>
+    <div class="skills-grid">
+      <div class="skill"><code>/setup-leoda</code><p>Configuración inicial de tu API key de fal.ai</p></div>
+      <div class="skill"><code>/brief-creativo</code><p>Brief bilingüe con concepto, hooks y CTAs</p></div>
+      <div class="skill"><code>/imagen-nano-banana</code><p>Imágenes con Nano Banana (text-to-image + edit)</p></div>
+      <div class="skill"><code>/video-seedance</code><p>Video Seedance 2.0 con audio nativo + lip-sync</p></div>
+      <div class="skill"><code>/voz-clon</code><p>Clonar voz desde audio + narración HD</p></div>
+      <div class="skill"><code>/sfx-generar</code><p>Snaps, whooshes, ambient, sparks, explosiones</p></div>
+      <div class="skill"><code>/variantes-ab</code><p>A/B testing + reformateo a todos los ratios</p></div>
+      <div class="skill"><code>/captions-multiplataforma</code><p>Captions ES+EN para IG, TikTok, YT, FB, LinkedIn, WA</p></div>
+      <div class="skill"><code>/calendario-publicaciones</code><p>Calendario semanal con horarios óptimos</p></div>
+      <div class="skill"><code>/pipeline-completo</code><p>Todo de una sola invocación, end-to-end</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <h2>¿Cómo funciona?</h2>
+    <p class="lead">Tres pasos. Una vez configurado, una sola conversación basta para producir.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Instala Cowork + el plugin</h3>
+        <p>Bajas Claude Cowork (gratis) y arrastras el plugin de Leoda.io al chat. 2 minutos.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Conecta fal.ai</h3>
+        <p>Te creas cuenta en fal.ai, agregas $5-10 de saldo, y corres /setup-leoda para guardar tu key.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Pide tu campaña</h3>
+        <p>"Necesito un reel para mi café orgánico para Instagram" → te entrega imágenes, video, captions, calendario.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="background: var(--card);">
+  <div class="container" style="max-width: 720px;">
+    <h2>Pricing</h2>
+    <p class="lead">El plugin es <strong>gratis y open source</strong>. Pagas solo lo que uses en fal.ai, sin suscripciones.</p>
+    <div class="pricing-table">
+      <div class="pricing-row"><span class="label">1 imagen Nano Banana</span><span class="price">$0.04</span></div>
+      <div class="pricing-row"><span class="label">1 video Seedance 2.0 Fast 5s 720p (con audio)</span><span class="price">$1.21</span></div>
+      <div class="pricing-row"><span class="label">1 video Seedance 2.0 Standard 8s 1080p</span><span class="price">$2.42</span></div>
+      <div class="pricing-row featured"><span class="label">1 OneShot 15s 1080p premium (con audio + lip-sync)</span><span class="price">$4.54</span></div>
+      <div class="pricing-row"><span class="label">Voice clone (una sola vez)</span><span class="price">$0.30</span></div>
+      <div class="pricing-row"><span class="label">Narración TTS por frase</span><span class="price">$0.05-0.10</span></div>
+      <div class="pricing-row"><span class="label">1 SFX cinematográfico</span><span class="price">$0.05-0.08</span></div>
+      <div class="pricing-row featured"><span class="label"><strong>Campaña completa típica</strong></span><span class="price"><strong>$6-8 USD</strong></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-final">
+  <div class="container">
+    <h2>¿Listo para crear?</h2>
+    <p class="lead">Instala el plugin, corre /setup-leoda, y empieza. Setup total: 5 minutos.</p>
+    <div class="cta-row">
+      <a href="https://github.com/TU-USUARIO/leoda-io" class="btn btn-primary">⭐ Instalar en GitHub</a>
+      <a href="https://github.com/TU-USUARIO/leoda-io/releases" class="btn btn-secondary">Descargar .plugin</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>Leoda.io v0.2.0 · MIT License · Hecho por <a href="mailto:elianmh21@gmail.com">Elian</a> · <a href="https://github.com/TU-USUARIO/leoda-io">GitHub</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
