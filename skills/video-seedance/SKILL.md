@@ -46,6 +46,61 @@ https://fal.run/bytedance/seedance-2.0/fast/image-to-video
 | `generate_audio` | No | bool | `true` (default) — incluye SFX, ambient y voz lip-sync **sin costo extra** |
 | `seed` | No | int | Para reproducibilidad |
 
+## PRE-FLIGHT CHECKLIST (OBLIGATORIO antes de cada llamada)
+
+Antes de mandar CUALQUIER request a fal.ai, Claude DEBE completar este checklist en su scratchpad. Esto evita el desperdicio más común: re-enviar requests por endpoint malo o regenerar assets que ya existen.
+
+```
+PRE-FLIGHT antes de generar video:
+[ ] ¿El usuario ya proveyó imágenes/videos en el chat o en su workspace? 
+    → Si SÍ: úsalos. NO regeneres.
+[ ] ¿Endpoint correcto? bytedance/seedance-2.0/image-to-video
+    NUNCA fal-ai/bytedance/... (ese endpoint NO existe)
+[ ] ¿Costo estimado calculado y aceptable?
+    5s @ 1080p Standard = $1.51
+    5s @ 720p Fast      = $1.21
+    15s @ 1080p Standard = $4.54
+[ ] ¿Cuántos clips voy a enviar en paralelo? Total estimado: $___
+[ ] ¿Es la PRIMERA vez que envío este prompt? 
+    → Si ya hay un request_id en mi scratchpad para este prompt, NO re-enviar
+[ ] ¿El prompt especifica EXPLÍCITAMENTE el encuadre de cámara?
+    Sin esto, Seedance puede mover la cámara fuera del frame deseado
+    (ej: "framing the subject from waist-up, never showing feet")
+```
+
+**Si el checklist no pasa, NO envíes el request. Reporta al usuario qué falta.**
+
+## Reuso de assets existentes (regla #1 para ahorrar créditos)
+
+Antes de generar un nuevo clip, Claude DEBE buscar en el workspace si ya hay material reusable:
+
+```bash
+# Buscar imágenes y videos previos
+ls -la /workspace/path/to/project/*.{jpg,png,mp4}
+
+# Si el usuario dijo "haz un trailer de un pintor" y ya hay scene1.jpg en disco,
+# úsalo directamente como image_url. NO regeneres.
+```
+
+Reglas de reuso:
+- Imagen del usuario subida o ya generada → USARLA (no regenerar)
+- Clip de Seedance previo de la misma escena → REUSARLO (no regenerar)
+- Solo regenerar si el usuario pide explícitamente "cámbiala" o "regenera"
+
+## Idempotencia y prevención de doble cobro
+
+**El bug más caro:** mandar el mismo prompt 2 veces porque el primer status URL devolvió error.
+
+```bash
+# MAL — devuelve "Path not found" pero el request SÍ se procesó y se cobró
+curl https://queue.fal.run/fal-ai/bytedance/seedance-2.0/image-to-video/requests/$ID/status
+
+# BIEN — usa el status_url que devuelve la respuesta inicial
+curl $STATUS_URL_FROM_INITIAL_RESPONSE
+```
+
+**Regla:** siempre extraer `status_url`, `response_url` directamente del JSON de respuesta del submit. NO construirlos por tu cuenta.
+
 ## Llamada típica (curl + queue async)
 
 ```bash
@@ -125,58 +180,4 @@ Estructura: **Camera Move + Subject Action + Atmosphere + Audio cue (si aplica)*
 **Para OneShot continuo (sin cortes)**:
 - Empieza con `"Single continuous unbroken cinematic shot, no cuts"`
 - Describe TODA la secuencia de acción en orden
-- Cierra con duración total esperada implícita
-
-**Para audio nativo específico**:
-- `"with ambient construction sounds"`
-- `"the man says in Spanish: 'palabras aquí'"`
-- `"with cinematic orchestral build-up music"`
-- `"silent atmosphere except for footsteps on concrete"`
-
-## Pricing
-
-| Tier | Rate | 5s | 10s | 15s |
-|---|---|---|---|---|
-| **Standard** (image-to-video) | $0.3024 / sec | $1.51 | $3.02 | $4.54 |
-| **Fast** (fast/image-to-video) | $0.2419 / sec | $1.21 | $2.42 | $3.63 |
-
-Audio nativo **incluido sin costo extra**. Token-based billing también disponible: `tokens = (height × width × duration × 24) / 1024` a $0.014/1000 tokens — usualmente más caro que el por-segundo.
-
-**Comparado con V1 Lite** ($0.18 / 5s = $0.036/sec): Seedance 2.0 cuesta 6-8x más pero entrega:
-- Calidad cinematográfica superior
-- Audio nativo incluido
-- Hasta 15s en un clip (vs 5s o 10s en V1)
-- Movimientos de cámara avanzados
-- Lip-sync de diálogo
-
-## Manejo de errores
-
-| Error | Causa | Fix |
-|---|---|---|
-| 401 Unauthorized | `FAL_KEY` mal/falta | `/setup-leoda` |
-| 402 Insufficient balance | Sin saldo | Recargar `https://fal.ai/dashboard/billing` |
-| 422 duration validation | Valor fuera de rango | Usar entero 4-15 o `auto` |
-| Path not found | Endpoint mal escrito | Confirmar `bytedance/seedance-2.0/image-to-video` (sin prefijo `fal-ai/`) |
-| Video con artefactos | Prompt muy complejo o conflictivo | Simplificar, usar `camera_fixed` style en prompt, regenerar con otro seed |
-
-## Procesar la respuesta
-
-1. Extrae `video.url` del JSON
-2. Descarga con `curl -sL --retry 3 -o nombre.mp4 "URL"` (retry para evitar archivos parciales)
-3. Verifica integridad: `ffprobe -v error ... -of csv=p=0 archivo.mp4` debe retornar `width,height,duration` sin errores
-4. Comparte con `computer://...` link al usuario
-5. Guarda prompt + seed + URL en `outputs/videos/<campana>-prompts.json`
-
-## Costos aproximados por campaña
-
-| Campaña | Composición | USD |
-|---|---|---|
-| 1 OneShot 15s Fast 720p | 1 clip | $3.63 |
-| 1 OneShot 15s Standard 1080p | 1 clip | $4.54 |
-| Reel 30s = 2 clips 15s Standard | 2 clips | $9.08 |
-| Brand film 10 escenas × 5s Fast 720p | 10 clips | $12.10 |
-
-## Recursos adicionales
-
-- `references/motion-recipes.md` — recetas de movimiento por categoría
-- [Documentación oficial fal.ai](https://fal.ai/models/bytedance/seedance-2.0/image-to-video)
+- Cierra con

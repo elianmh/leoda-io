@@ -1,7 +1,7 @@
 {
   "name": "leoda-io",
-  "version": "0.2.0",
-  "description": "Leoda.io — pipeline automatizado de marketing visual con Nano Banana (imágenes), Seedance 2.0 (video con audio nativo + lip-sync), MiniMax (voice clone), Stable Audio (SFX) y ElevenLabs (TTS) vía fal.ai. Briefs, imágenes, videos cinematográficos, variantes A/B, captions bilingües, calendario, voice cloning y sound design.",
+  "version": "0.3.0",
+  "description": "Leoda.io — pipeline automatizado de marketing visual con Nano Banana (imágenes), Seedance 2.0 (video con audio nativo + lip-sync), MiniMax (voice clone), Stable Audio (SFX) y ElevenLabs (TTS) vía fal.ai. Trailers cinematográficos, pre-flight cost validation, reuso de assets, briefs, imágenes, videos, variantes A/B, captions bilingües, calendario.",
   "author": {
     "name": "Elian",
     "email": "elianmh21@gmail.com"
@@ -18,6 +18,4 @@
     "sound-effects",
     "social-media",
     "bilingual"
-  ],
-  "license": "MIT"
-}
+ 
