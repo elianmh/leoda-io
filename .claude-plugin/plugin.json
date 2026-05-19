@@ -1,6 +1,6 @@
 {
   "name": "leoda-io",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Leoda.io — pipeline automatizado de marketing visual con Nano Banana, Seedance 2.0 (audio nativo + lip-sync), MiniMax voice clone, Stable Audio SFX, Eleven Music vía fal.ai. v0.4.0 incluye Flow Editor visual estilo ElevenLabs Flows: canvas infinito, nodos drag-and-drop, conexiones Bezier, Run individual por nodo, Run from here, Flows Agent chat. Trailers, storyboards, pre-flight cost validation, reuso de assets, briefs, imágenes, videos, variantes A/B, captions bilingües, calendario.",
   "author": {
     "name": "Elian",
