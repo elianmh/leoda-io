@@ -1,0 +1,1565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Leoda Flow · Node Editor v2</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  html, body { height: 100%; width: 100%; overflow: hidden; font-family: -apple-system, "Segoe UI", system-ui, sans-serif; background: #f4f1ea; color: #1c1a18; }
+  body { display: grid; grid-template-columns: 1fr; grid-template-rows: 50px 1fr; height: 100vh; }
+
+  /* TOP BAR */
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: #1c1a18; color: #fff; border-bottom: 2px solid #f0c382; }
+  .topbar-left, .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .topbar h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.3px; }
+  .topbar h1 .accent { color: #f0c382; }
+  .flow-name { font-size: 13px; font-weight: 500; padding: 4px 10px; border: 1px solid transparent; border-radius: 4px; cursor: text; min-width: 180px; background: transparent; color: #fff; font-family: inherit; }
+  .flow-name::placeholder { color: rgba(255,255,255,0.4); }
+  .flow-name::selection { background: #f0c382; color: #1c1a18; }
+  .flow-name:hover { border-color: #4a443a; }
+  .flow-name:focus { outline: none; border-color: #f0c382; background: rgba(255,255,255,0.08); color: #fff; }
+  .credit-meter { display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: rgba(240, 195, 130, 0.15); border: 1px solid #f0c382; border-radius: 16px; font-size: 12px; }
+  .credit-meter .val { color: #f0c382; font-weight: 700; }
+  .topbar button { background: transparent; border: 1px solid #4a443a; color: #fff; padding: 5px 12px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 600; }
+  .topbar button:hover { background: #322d27; }
+  .topbar button.primary { background: #f0c382; color: #1c1a18; border-color: #f0c382; }
+  .topbar button.primary:hover { background: #e7b367; }
+  .topbar button.icon { padding: 5px 9px; }
+
+  /* CANVAS */
+  .canvas-wrap { position: relative; overflow: hidden; background: #f4f1ea; background-image: radial-gradient(circle at 1px 1px, rgba(28,26,24,0.08) 1px, transparent 0); background-size: 24px 24px; }
+  svg.canvas { width: 100%; height: 100%; cursor: grab; display: block; }
+  svg.canvas.panning { cursor: grabbing; }
+
+  /* TOOLBAR DOCK INFERIOR */
+  .dock { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 6px; background: #1c1a18; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); z-index: 100; }
+  .dock button { width: 38px; height: 38px; border-radius: 9px; background: transparent; border: none; color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; position: relative; }
+  .dock button:hover { background: rgba(240, 195, 130, 0.2); }
+  .dock button.active { background: #f0c382; color: #1c1a18; }
+  .dock button .tip { display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; padding: 4px 8px; background: #fff; color: #1c1a18; font-size: 11px; font-weight: 600; border-radius: 4px; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+  .dock button:hover .tip { display: block; }
+  .dock .separator { width: 1px; height: 24px; background: #4a443a; margin: 0 4px; }
+
+  /* ZOOM WIDGET */
+  .zoom-widget { position: absolute; top: 16px; right: 16px; display: flex; flex-direction: column; gap: 4px; background: #fff; border: 1px solid #e0d8c4; border-radius: 8px; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 50; }
+  .zoom-widget button { width: 32px; height: 32px; border: none; background: transparent; cursor: pointer; font-size: 14px; font-weight: 700; color: #1c1a18; border-radius: 4px; }
+  .zoom-widget button:hover { background: #faf6ed; }
+  .zoom-level { text-align: center; font-size: 10px; color: #756d5d; padding: 2px; font-weight: 600; font-family: ui-monospace, monospace; }
+
+  /* FLOWS AGENT CHAT */
+  .agent-toggle { position: absolute; bottom: 20px; right: 20px; padding: 10px 16px; background: #1c1a18; color: #fff; border: none; border-radius: 22px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.25); z-index: 100; }
+  .agent-toggle:hover { background: #322d27; }
+  .agent-toggle .dot { width: 8px; height: 8px; background: #f0c382; border-radius: 50%; }
+
+  .agent-panel { position: absolute; bottom: 80px; right: 20px; width: 360px; max-height: 60vh; background: #fff; border: 1px solid #e0d8c4; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.18); z-index: 110; display: none; flex-direction: column; overflow: hidden; }
+  .agent-panel.open { display: flex; }
+  .agent-panel-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #e8e2d4; background: #faf6ed; }
+  .agent-panel-header .ttl { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .agent-panel-header .ttl .dot { width: 8px; height: 8px; background: #f0c382; border-radius: 50%; }
+  .agent-panel-header .close { cursor: pointer; background: transparent; border: none; font-size: 18px; color: #756d5d; padding: 0 6px; }
+  .agent-body { padding: 12px 14px; overflow-y: auto; flex: 1; min-height: 200px; max-height: 360px; }
+  .agent-msg { margin-bottom: 10px; font-size: 12px; line-height: 1.5; }
+  .agent-msg.user { background: #faf6ed; padding: 8px 12px; border-radius: 8px; }
+  .agent-msg.bot { color: #756d5d; }
+  .agent-msg.bot::before { content: "🤖 "; }
+  .agent-suggestions { display: flex; flex-direction: column; gap: 6px; padding: 0 14px 8px; }
+  .agent-suggestions button { padding: 8px 10px; background: #faf6ed; border: 1px solid #e8e2d4; border-radius: 6px; font-size: 11px; color: #1c1a18; cursor: pointer; text-align: left; }
+  .agent-suggestions button:hover { background: #1c1a18; color: #fff; }
+  .agent-input { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid #e8e2d4; background: #faf6ed; }
+  .agent-input input { flex: 1; padding: 8px 10px; border: 1px solid #d6cdb8; border-radius: 6px; font: inherit; font-size: 12px; outline: none; }
+  .agent-input input:focus { border-color: #f0c382; }
+  .agent-input button { padding: 6px 12px; background: #1c1a18; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
+
+  /* PROPERTIES PANEL (toggle) */
+  .props-toggle { position: absolute; top: 60px; right: 16px; padding: 6px 12px; background: #1c1a18; color: #fff; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; z-index: 50; display: none; }
+  .props-panel { position: absolute; top: 0; right: 0; width: 300px; height: 100%; background: #fff; border-left: 1px solid #e0d8c4; padding: 14px; overflow-y: auto; z-index: 80; transform: translateX(100%); transition: transform 0.2s; }
+  .props-panel.open { transform: translateX(0); }
+  .props-empty { color: #a89e8a; font-size: 13px; text-align: center; padding: 30px 10px; }
+  .props-empty .ico { font-size: 36px; opacity: 0.4; display: block; margin-bottom: 10px; }
+  .props-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #ede6d6; }
+  .props-header .ico { font-size: 18px; }
+  .props-header .ttl { font-weight: 700; font-size: 14px; flex: 1; }
+  .props-header .close { background: transparent; border: none; cursor: pointer; font-size: 18px; color: #756d5d; }
+  .props-field { margin-bottom: 12px; }
+  .props-field label { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: #756d5d; font-weight: 700; margin-bottom: 5px; }
+  .props-field input, .props-field textarea, .props-field select { width: 100%; padding: 8px 10px; border: 1px solid #d6cdb8; border-radius: 6px; font: inherit; font-size: 12px; }
+  .props-field textarea { font-family: ui-monospace, Menlo, monospace; font-size: 11px; resize: vertical; min-height: 90px; line-height: 1.4; }
+  .props-thumb { width: 100%; aspect-ratio: 9/16; background: #1c1a18; border-radius: 6px; margin-bottom: 12px; overflow: hidden; }
+  .props-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .props-status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-left: 6px; }
+  .props-status-badge.idle { background: #e8e4dc; color: #4a443a; }
+  .props-status-badge.queued { background: #fff4e0; color: #8b5a1a; }
+  .props-status-badge.running { background: #fff4e0; color: #8b5a1a; }
+  .props-status-badge.done { background: #d4e8d4; color: #1a5e1a; }
+  .props-status-badge.failed { background: #f9d4d4; color: #8b1a1a; }
+
+  /* CONTEXT MENU */
+  .context-menu { position: fixed; background: #fff; border: 1px solid #e0d8c4; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 200; padding: 6px 0; min-width: 180px; display: none; }
+  .context-menu.open { display: block; }
+  .context-menu button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 14px; background: transparent; border: none; cursor: pointer; font-size: 12px; text-align: left; color: #1c1a18; }
+  .context-menu button:hover { background: #faf6ed; }
+  .context-menu button.danger { color: #8b1a1a; }
+  .context-menu hr { border: none; border-top: 1px solid #e8e2d4; margin: 4px 0; }
+
+  /* SVG NODES */
+  .node-rect { fill: #fff; stroke: #c8bfaa; stroke-width: 1.5; filter: drop-shadow(0 3px 10px rgba(0,0,0,0.1)); }
+  .node-rect.selected { stroke: #f0c382; stroke-width: 2.5; }
+  .node-rect.running { stroke: #f0c382; stroke-width: 2; stroke-dasharray: 8 4; }
+  .node-rect.done { stroke: #4a8b4a; stroke-width: 2; }
+  .node-rect.failed { stroke: #8b1a1a; stroke-width: 2; }
+  .port { fill: #fff; stroke: #1c1a18; stroke-width: 2; cursor: crosshair; transition: r 0.1s; }
+  .port:hover { fill: #f0c382; stroke: #f0c382; }
+  .port.in { stroke: #4a8b4a; }
+  .port.out { stroke: #8b4a1a; }
+  .connection { fill: none; stroke: #f0c382; stroke-width: 2.5; }
+  .connection:hover { stroke: #e7b367; stroke-width: 3.5; }
+  .connection.preview { stroke-dasharray: 5 3; opacity: 0.6; }
+  .conn-hit { fill: none; stroke: transparent; stroke-width: 18; cursor: pointer; }
+  .conn-midpoint { cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+  .conn-group:hover .conn-midpoint { opacity: 1; }
+  .conn-group:hover .connection { stroke: #e7b367; }
+  .conn-midpoint circle { fill: #fff; stroke: #8b1a1a; stroke-width: 2; }
+  .conn-midpoint:hover circle { fill: #8b1a1a; stroke: #8b1a1a; }
+  .conn-midpoint .x-mark { fill: #8b1a1a; font-size: 14px; font-weight: 700; pointer-events: none; user-select: none; }
+  .conn-midpoint:hover .x-mark { fill: #fff; }
+
+  /* RUN BUTTON inside SVG node — implemented as HTML overlay */
+  .node-overlay { position: absolute; pointer-events: none; }
+  .node-overlay > * { pointer-events: auto; }
+  .node-run-btn { background: #f0c382; color: #1c1a18; border: none; border-radius: 6px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+  .node-run-btn:hover { background: #e7b367; }
+  .node-run-btn:disabled { background: #ddd; color: #888; cursor: not-allowed; }
+  .node-rename-input { font: inherit; font-size: 12px; font-weight: 600; border: 1px solid #f0c382; padding: 2px 6px; border-radius: 4px; background: #fff; outline: none; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>🛠 <span class="accent">Leoda</span> Flow</h1>
+      <span style="color:#4a443a;">|</span>
+      <input class="flow-name" id="flowName" value="Untitled Flow">
+    </div>
+    <div class="credit-meter">
+      <span>CRÉDITOS</span>
+      <span class="val" id="totalCost">$0.00</span>
+      <span style="opacity:0.6">·</span>
+      <span id="balanceLeft" style="opacity:0.8">fal.ai</span>
+    </div>
+    <div class="topbar-right">
+      <button class="icon" onclick="saveFlow()" title="Save">💾</button>
+      <button class="icon" onclick="loadFlow()" title="Load">📂</button>
+      <button class="icon" onclick="exportJSON()" title="Export JSON">⤓</button>
+      <button class="icon" onclick="resetFlow()" title="Reset">↺</button>
+      <button onclick="createTemplate()">Create Template</button>
+      <button class="primary" onclick="runFlow()">▶ Run All</button>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <svg class="canvas" id="canvas">
+      <g id="viewport-transform">
+        <g id="connections-layer"></g>
+        <g id="nodes-layer"></g>
+        <g id="overlay-layer"></g>
+      </g>
+    </svg>
+    <div class="node-overlay" id="node-overlay-container"></div>
+
+    <!-- DOCK INFERIOR (toolbar tipo ElevenLabs) -->
+    <div class="dock">
+      <button onclick="setTool('select')" id="tool-select" title="Seleccionar"><span>↖</span><span class="tip">Select (V)</span></button>
+      <button onclick="setTool('pan')" id="tool-pan" title="Pan"><span>✋</span><span class="tip">Pan (H)</span></button>
+      <button onclick="setTool('comment')" id="tool-comment" title="Comment"><span>💬</span><span class="tip">Comment (C)</span></button>
+      <div class="separator"></div>
+      <button onclick="addNodeCentered('input-image')" title="Reference Image"><span>🖼</span><span class="tip">Image Ref</span></button>
+      <button onclick="addNodeCentered('image-gen')" title="Image gen"><span>✨</span><span class="tip">Image Gen</span></button>
+      <button onclick="addNodeCentered('video-gen')" title="Video gen"><span>🎬</span><span class="tip">Video Gen</span></button>
+      <button onclick="addNodeCentered('tts')" title="Text to Speech"><span>🗣</span><span class="tip">TTS</span></button>
+      <button onclick="addNodeCentered('sfx')" title="Sound Effects"><span>🔊</span><span class="tip">SFX</span></button>
+      <button onclick="addNodeCentered('music')" title="Music"><span>🎵</span><span class="tip">Music</span></button>
+      <button onclick="addNodeCentered('llm')" title="LLM"><span>🤖</span><span class="tip">LLM</span></button>
+      <button onclick="addNodeCentered('composition')" title="Composition"><span>📐</span><span class="tip">Composition</span></button>
+      <button onclick="addNodeCentered('input-text')" title="Text input"><span>📝</span><span class="tip">Text</span></button>
+      <div class="separator"></div>
+      <button onclick="document.getElementById('uploadInput').click()" title="Upload media"><span>⤴</span><span class="tip">Upload</span></button>
+      <input type="file" id="uploadInput" style="display:none" accept="image/*,video/*,audio/*" onchange="handleFileUpload(event)" multiple>
+    </div>
+
+    <!-- ZOOM WIDGET -->
+    <div class="zoom-widget">
+      <button onclick="adjustZoom(0.1)" title="Zoom in">＋</button>
+      <div class="zoom-level" id="zoomLevel">100%</div>
+      <button onclick="adjustZoom(-0.1)" title="Zoom out">−</button>
+      <button onclick="fitToScreen()" title="Fit">⛶</button>
+      <button onclick="resetView()" title="Reset">⌂</button>
+    </div>
+
+    <!-- FLOWS AGENT TOGGLE -->
+    <button class="agent-toggle" onclick="toggleAgent()"><span class="dot"></span>Flows Agent</button>
+
+    <!-- FLOWS AGENT PANEL -->
+    <div class="agent-panel" id="agentPanel">
+      <div class="agent-panel-header">
+        <div class="ttl"><span class="dot"></span>Flows Agent</div>
+        <button class="close" onclick="toggleAgent()">×</button>
+      </div>
+      <div class="agent-body" id="agentBody">
+        <div class="agent-msg bot">Hola Elian. Soy tu Flows Agent. Describe lo que quieres y construyo el flow conmigo. Por ejemplo: "agrega una escena de intro" o "haz un trailer del pintor".</div>
+      </div>
+      <div class="agent-suggestions">
+        <button onclick="sendAgentMsg('Agrega una escena de intro antes del primer video')">+ Escena de intro</button>
+        <button onclick="sendAgentMsg('Duplica este flow para hacer batch test con 3 prompts distintos')">⧉ Batch variations</button>
+        <button onclick="sendAgentMsg('Ejecuta solo lo que falta sin regenerar lo que ya está done')">▶ Run faltantes</button>
+      </div>
+      <div class="agent-input">
+        <input type="text" id="agentInput" placeholder="Añade una nueva escena de intro antes de..." onkeydown="if(event.key==='Enter') sendAgentMsg(this.value)">
+        <button onclick="sendAgentMsg(document.getElementById('agentInput').value)">Send</button>
+      </div>
+    </div>
+
+    <!-- PROPERTIES PANEL (deslizable derecha) -->
+    <div class="props-panel" id="propsPanel">
+      <div id="propsContent">
+        <div class="props-empty"><span class="ico">🎛</span>Selecciona un nodo<br>para editar sus propiedades</div>
+      </div>
+    </div>
+
+    <!-- CONTEXT MENU (right-click on node) -->
+    <div class="context-menu" id="contextMenu">
+      <button onclick="ctxAction('run')">▶ Run</button>
+      <button onclick="ctxAction('run-from-here')">▶▶ Run from here</button>
+      <hr>
+      <button onclick="ctxAction('rename')">✏ Rename</button>
+      <button onclick="ctxAction('duplicate')">⧉ Duplicate</button>
+      <button onclick="ctxAction('properties')">🎛 Properties</button>
+      <hr>
+      <button onclick="ctxAction('replace')">↻ Replace input</button>
+      <button onclick="ctxAction('download')">⤓ Download output</button>
+      <hr>
+      <button onclick="ctxAction('delete')" class="danger">🗑 Delete</button>
+    </div>
+  </div>
+
+<script>
+  // ===========================================================================
+  // NODE DEFINITIONS
+  // ===========================================================================
+  const NODE_DEFS = {
+    "input-image": {
+      title: "Image Ref", ico: "🖼", color: "#4a8b8b", previewType: "image",
+      inputs: [], outputs: [{name: "image", type: "image"}],
+      fields: [{key: "label", label: "Etiqueta", type: "text", default: "Reference"},
+               {key: "url", label: "URL/path", type: "text", default: ""}],
+      cost: () => 0,
+    },
+    "input-audio": {
+      title: "Audio Ref", ico: "🎙", color: "#4a8b8b", previewType: "audio",
+      inputs: [], outputs: [{name: "audio", type: "audio"}],
+      fields: [{key: "label", label: "Etiqueta", type: "text", default: "Voice sample"}],
+      cost: () => 0,
+    },
+    "input-text": {
+      title: "Text", ico: "📝", color: "#4a8b8b", previewType: "text",
+      inputs: [], outputs: [{name: "text", type: "text"}],
+      fields: [{key: "text", label: "Texto", type: "textarea", default: "Texto aquí..."}],
+      cost: () => 0,
+    },
+    "image-gen": {
+      title: "Nano Banana 2", ico: "✨", color: "#f0a060", previewType: "image",
+      inputs: [{name: "image_refs", type: "image", multi: true}],
+      outputs: [{name: "image", type: "image"}],
+      fields: [
+        {key: "prompt", label: "Prompt", type: "textarea", default: "Cinematic shot of..."},
+        {key: "aspect", label: "Aspect ratio", type: "select", options: ["Auto","9:16","1:1","16:9","4:3"], default: "Auto"},
+        {key: "resolution", label: "Resolution", type: "select", options: ["1K","2K","4K"], default: "1K"},
+      ],
+      cost: () => 0.04,
+    },
+    "image-edit": {
+      title: "NB /edit", ico: "✂", color: "#f0a060", previewType: "image",
+      inputs: [{name: "image_refs", type: "image", multi: true}],
+      outputs: [{name: "image", type: "image"}],
+      fields: [{key: "prompt", label: "Edit prompt", type: "textarea", default: "Same scene but..."}],
+      cost: () => 0.04,
+    },
+    "video-gen": {
+      title: "Seedance 2.0", ico: "🎬", color: "#c4664a", previewType: "video",
+      inputs: [{name: "start_frame", type: "image"}, {name: "end_frame", type: "image", optional: true}],
+      outputs: [{name: "video", type: "video"}],
+      fields: [
+        {key: "prompt", label: "Motion prompt", type: "textarea", default: "Slow cinematic dolly forward..."},
+        {key: "duration", label: "Duración (s)", type: "number", default: 5, min: 3, max: 15},
+        {key: "resolution", label: "Resolution", type: "select", options: ["720p","1080p"], default: "1080p"},
+        {key: "aspect", label: "Aspect", type: "select", options: ["9:16","1:1","16:9","4:3"], default: "9:16"},
+        {key: "audio", label: "Generate audio", type: "checkbox", default: true},
+      ],
+      cost: (n) => 0.3024 * (n.fields.duration || 5),
+    },
+    "voice-clone": {
+      title: "Voice Clone", ico: "🗣", color: "#8b6ac4", previewType: "voice",
+      inputs: [{name: "sample", type: "audio"}],
+      outputs: [{name: "voice_id", type: "voice"}],
+      fields: [{key: "name", label: "Nombre voz", type: "text", default: "Mi voz"}],
+      cost: () => 0.30,
+    },
+    "tts": {
+      title: "Eleven Multilingual v2", ico: "🗣", color: "#8b6ac4", previewType: "speech",
+      inputs: [{name: "text", type: "text"}, {name: "voice_id", type: "voice", optional: true}],
+      outputs: [{name: "audio", type: "audio"}],
+      fields: [
+        {key: "text", label: "Texto a hablar", type: "textarea", default: "Hola, soy..."},
+        {key: "lang", label: "Idioma", type: "select", options: ["es","en","auto"], default: "auto"},
+      ],
+      cost: () => 0.10,
+    },
+    "sfx": {
+      title: "Stable Audio SFX", ico: "🔊", color: "#8b6ac4", previewType: "audio",
+      inputs: [{name: "prompt", type: "text", optional: true}],
+      outputs: [{name: "audio", type: "audio"}],
+      fields: [
+        {key: "prompt", label: "SFX prompt", type: "textarea", default: "Heavy wooden door slam..."},
+        {key: "duration", label: "Duración (s)", type: "number", default: 3, min: 1, max: 30},
+      ],
+      cost: () => 0.05,
+    },
+    "music": {
+      title: "Eleven Music", ico: "🎵", color: "#8b6ac4", previewType: "audio",
+      inputs: [{name: "prompt", type: "text", optional: true}],
+      outputs: [{name: "audio", type: "audio"}],
+      fields: [
+        {key: "prompt", label: "Describe music", type: "textarea", default: "Cinematic suspense orchestral build..."},
+        {key: "duration", label: "Duración (s)", type: "number", default: 30, min: 5, max: 180},
+        {key: "lyrics", label: "Con lyrics", type: "checkbox", default: false},
+      ],
+      cost: () => 0.08,
+    },
+    "llm": {
+      title: "LLM (Claude)", ico: "🤖", color: "#5a8bc4", previewType: "text",
+      inputs: [{name: "context", type: "text", optional: true}],
+      outputs: [{name: "text", type: "text"}],
+      fields: [
+        {key: "prompt", label: "System prompt", type: "textarea", default: "Genera un prompt cinematográfico para..."},
+        {key: "model", label: "Modelo", type: "select", options: ["sonnet","opus","haiku"], default: "sonnet"},
+      ],
+      cost: () => 0.005,
+    },
+    "composition": {
+      title: "Composition", ico: "📐", color: "#4a8b4a", previewType: "timeline",
+      inputs: [
+        {name: "v1", type: "video"}, {name: "v2", type: "video", optional: true},
+        {name: "v3", type: "video", optional: true}, {name: "v4", type: "video", optional: true},
+        {name: "a1", type: "audio", optional: true}, {name: "a2", type: "audio", optional: true}
+      ],
+      outputs: [{name: "final", type: "video"}],
+      fields: [
+        {key: "transition", label: "Transición", type: "select", options: ["xfade","fadeblack","cut"], default: "xfade"},
+        {key: "xfade_dur", label: "Duración xfade (s)", type: "number", default: 0.5, min: 0, max: 2, step: 0.1},
+        {key: "aspect", label: "Export aspect", type: "select", options: ["9:16","1:1","16:9","todos"], default: "9:16"},
+        {key: "filename", label: "Filename", type: "text", default: "FINAL_TRAILER"},
+      ],
+      cost: () => 0,
+    },
+  };
+
+  // Pseudo-random waveform por nodo (consistente para que no parpadee al renderizar)
+  function waveformBars(seed, count) {
+    let s = seed; const bars = [];
+    for (let i = 0; i < count; i++) {
+      s = (s * 9301 + 49297) % 233280;
+      bars.push(0.25 + (s / 233280) * 0.75);
+    }
+    return bars;
+  }
+
+  // ===========================================================================
+  // LAYOUT CONSTANTS
+  // ===========================================================================
+  const NODE_W = 260;
+  const HEADER_H = 32;
+  const PORT_AREA_H = 24;
+  const BODY_PADDING_TOP = 10;
+  const PREVIEW_LINE_H = 14;
+  const RUN_BUTTON_H = 32;
+  const FOOTER_H = 18;
+  const STORAGE_KEY = "leoda_flow_v3";
+
+  // ===========================================================================
+  // STATE
+  // ===========================================================================
+  let state = {
+    nodes: {},
+    connections: [],
+    selected: null,
+    viewport: {x: 0, y: 0, zoom: 1},
+    flowName: "Untitled Flow",
+    agentMessages: [],
+  };
+  let nextId = 1;
+  let connecting = null;
+  let dragging = null;
+  let panning = null;
+  let currentTool = "select";
+  let ctxNodeId = null;
+
+  // ===========================================================================
+  // PERSISTENCE
+  // ===========================================================================
+  function saveFlow() {
+    state.flowName = document.getElementById("flowName").value;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); flashBtn("Saved"); }
+    catch(e) { alert("Error: " + e.message); }
+  }
+  function loadFlow() {
+    try {
+      const s = localStorage.getItem(STORAGE_KEY);
+      if (s) {
+        state = JSON.parse(s);
+        nextId = Math.max(0, ...Object.keys(state.nodes).map(s => parseInt(s.slice(1))||0)) + 1;
+        document.getElementById("flowName").value = state.flowName || "Untitled Flow";
+        if (!state.viewport) state.viewport = {x:0,y:0,zoom:1};
+        if (!state.agentMessages) state.agentMessages = [];
+        render(); applyViewport();
+      }
+    } catch(e) { alert("Error: " + e.message); }
+  }
+  function resetFlow() {
+    if (!confirm("¿Borrar todo el flow?")) return;
+    state = {nodes:{},connections:[],selected:null,viewport:{x:0,y:0,zoom:1},flowName:"Untitled Flow",agentMessages:[]};
+    nextId = 1;
+    document.getElementById("flowName").value = state.flowName;
+    render(); applyViewport();
+    renderAgentMsgs();
+  }
+  function exportJSON() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = (state.flowName || "flow") + ".json";
+    a.click();
+  }
+  function createTemplate() {
+    const inputNodes = Object.values(state.nodes).filter(n => n.type.startsWith("input-"));
+    const outputNodes = Object.values(state.nodes).filter(n => n.type === "composition" || n.type === "output");
+    alert(`Template creado:\n\n${inputNodes.length} input(s)\n${outputNodes.length} output(s)\n\nDescargar el JSON con "⤓" para reutilizarlo.`);
+    exportJSON();
+  }
+  function flashBtn(text) {
+    const btn = event?.target;
+    if (!btn) return;
+    const o = btn.textContent; btn.textContent = text;
+    setTimeout(() => btn.textContent = o, 1200);
+  }
+
+  // ===========================================================================
+  // NODES
+  // ===========================================================================
+  function nodeHeight(node) {
+    const def = NODE_DEFS[node.type];
+    const portCount = Math.max(def.inputs.length, def.outputs.length, 1);
+    const previewKey = def.fields[0]?.key;
+    const previewText = previewKey ? String(node.fields[previewKey] || "") : "";
+    const lines = Math.max(1, Math.min(4, Math.ceil(previewText.length / 34)));
+    const promptBlock = lines * PREVIEW_LINE_H + 4;
+    // Preview block height por tipo
+    const pt = def.previewType || "text";
+    let previewBlockH = 0;
+    if (pt === "image") previewBlockH = (node.thumbnail ? 95 : 75) + 8;
+    else if (pt === "video") previewBlockH = (node.thumbnail ? 110 : 85) + 8;
+    else if (pt === "audio" || pt === "speech") previewBlockH = 60 + 8;
+    else if (pt === "voice") previewBlockH = 50 + 8;
+    else if (pt === "timeline") previewBlockH = 70 + 8;
+    return HEADER_H + (portCount * PORT_AREA_H) + BODY_PADDING_TOP + previewBlockH + promptBlock + RUN_BUTTON_H + FOOTER_H + 6;
+  }
+
+  function addNode(type, x, y) {
+    const def = NODE_DEFS[type];
+    if (!def) return null;
+    const id = "n" + nextId++;
+    const fields = {};
+    def.fields.forEach(f => fields[f.key] = f.default);
+    state.nodes[id] = {
+      id, type, x, y,
+      name: def.title,
+      fields,
+      status: "idle",
+      thumbnail: null,
+    };
+    render();
+    return id;
+  }
+
+  function addNodeCentered(type) {
+    const rect = document.getElementById("canvas").getBoundingClientRect();
+    const cx = (rect.width / 2 - state.viewport.x) / state.viewport.zoom - NODE_W / 2;
+    const cy = (rect.height / 2 - state.viewport.y) / state.viewport.zoom - 80;
+    addNode(type, cx + (Math.random() * 60 - 30), cy + (Math.random() * 60 - 30));
+  }
+
+  function removeNode(id) {
+    delete state.nodes[id];
+    state.connections = state.connections.filter(c => c.fromId !== id && c.toId !== id);
+    if (state.selected === id) state.selected = null;
+    render();
+  }
+  function selectNode(id) { state.selected = id; render(); }
+  function duplicateNode(id) {
+    const n = state.nodes[id];
+    if (!n) return;
+    const newId = "n" + nextId++;
+    state.nodes[newId] = JSON.parse(JSON.stringify(n));
+    state.nodes[newId].id = newId;
+    state.nodes[newId].x += 40; state.nodes[newId].y += 40;
+    state.nodes[newId].status = "idle";
+    state.nodes[newId].thumbnail = null;
+    render();
+  }
+  function renameNode(id, newName) {
+    const n = state.nodes[id];
+    if (!n) return;
+    n.name = newName || NODE_DEFS[n.type].title;
+    render();
+  }
+
+  // ===========================================================================
+  // CONNECTIONS
+  // ===========================================================================
+  function startConnect(nodeId, portIdx, portType) {
+    if (portType !== "out") return;
+    connecting = {fromId: nodeId, fromPortIdx: portIdx};
+  }
+  function finishConnect(nodeId, portIdx, portType) {
+    if (!connecting || portType !== "in") { connecting = null; return; }
+    if (connecting.fromId === nodeId) { connecting = null; return; }
+    const fromDef = NODE_DEFS[state.nodes[connecting.fromId].type];
+    const toDef = NODE_DEFS[state.nodes[nodeId].type];
+    const outType = fromDef.outputs[connecting.fromPortIdx].type;
+    const inType = toDef.inputs[portIdx].type;
+    if (outType !== inType) { connecting = null; return; }
+    // If port doesn't support multi, replace existing connection
+    const inDef = toDef.inputs[portIdx];
+    if (!inDef.multi) {
+      state.connections = state.connections.filter(c => !(c.toId === nodeId && c.toPortIdx === portIdx));
+    }
+    state.connections.push({fromId: connecting.fromId, fromPortIdx: connecting.fromPortIdx, toId: nodeId, toPortIdx: portIdx});
+    connecting = null;
+    render();
+  }
+  function removeConnection(idx) { state.connections.splice(idx, 1); render(); }
+
+  // ===========================================================================
+  // COST
+  // ===========================================================================
+  function computeTotalCost() {
+    let total = 0;
+    Object.values(state.nodes).forEach(n => {
+      if (n.status === "done") return; // ya cobrado
+      const def = NODE_DEFS[n.type];
+      if (def && def.cost) total += def.cost(n);
+    });
+    return total;
+  }
+  function updateCost() {
+    document.getElementById("totalCost").textContent = "$" + computeTotalCost().toFixed(2);
+  }
+
+  // ===========================================================================
+  // PORTS
+  // ===========================================================================
+  function getPortPos(node, isInput, portIdx) {
+    const yOffset = HEADER_H + PORT_AREA_H * (portIdx + 0.5);
+    return {
+      x: isInput ? node.x : node.x + NODE_W,
+      y: node.y + yOffset
+    };
+  }
+
+  // ===========================================================================
+  // TOPOLOGICAL DOWNSTREAM
+  // ===========================================================================
+  function downstreamOf(nodeId) {
+    const visited = new Set();
+    const queue = [nodeId];
+    const result = [];
+    while (queue.length) {
+      const id = queue.shift();
+      if (visited.has(id)) continue;
+      visited.add(id);
+      if (id !== nodeId) result.push(id);
+      state.connections.filter(c => c.fromId === id).forEach(c => queue.push(c.toId));
+    }
+    return result;
+  }
+
+  // ===========================================================================
+  // RUN
+  // ===========================================================================
+  function runNode(id) {
+    const n = state.nodes[id];
+    if (!n) return;
+    const def = NODE_DEFS[n.type];
+    const cost = def.cost(n);
+    if (cost === 0) {
+      // free: just mark as running for visual
+      n.status = "running"; render();
+      setTimeout(() => { n.status = "done"; render(); }, 800);
+      return;
+    }
+    if (!confirm(`Ejecutar nodo "${n.name}"?\n\nCosto: $${cost.toFixed(2)} USD`)) return;
+    n.status = "queued"; render();
+    sendToClaude(buildNodeRunPrompt(id));
+  }
+
+  function runFromHere(id) {
+    const ids = [id, ...downstreamOf(id)];
+    const filtered = ids.filter(nid => state.nodes[nid] && state.nodes[nid].status !== "done");
+    if (filtered.length === 0) { alert("Nada que ejecutar (todo ya está done)."); return; }
+    const totalCost = filtered.reduce((acc, nid) => acc + NODE_DEFS[state.nodes[nid].type].cost(state.nodes[nid]), 0);
+    if (!confirm(`Ejecutar desde "${state.nodes[id].name}" hacia downstream:\n\n${filtered.length} nodos\nCosto total: $${totalCost.toFixed(2)} USD`)) return;
+    filtered.forEach(nid => state.nodes[nid].status = "queued");
+    render();
+    sendToClaude(buildBatchRunPrompt(filtered));
+  }
+
+  function runFlow() {
+    const pending = Object.values(state.nodes).filter(n => n.status !== "done");
+    if (pending.length === 0) { alert("Todo el flow ya está done. Marca alguno como pending para re-run."); return; }
+    const totalCost = pending.reduce((acc, n) => acc + NODE_DEFS[n.type].cost(n), 0);
+    if (totalCost === 0) { alert("No hay operaciones costosas pendientes."); return; }
+    if (!confirm(`Ejecutar TODO el flow:\n\n${pending.length} nodos pendientes\nCosto: $${totalCost.toFixed(2)} USD`)) return;
+    pending.forEach(n => n.status = "queued");
+    render();
+    sendToClaude(buildBatchRunPrompt(pending.map(n => n.id)));
+  }
+
+  function buildNodeRunPrompt(id) {
+    const n = state.nodes[id];
+    return `Ejecutar nodo ${id} del Leoda Flow:\n\n\`\`\`json\n${JSON.stringify(n, null, 2)}\n\`\`\`\n\nAplica PRE-FLIGHT CHECKLIST. Cuando complete, actualiza este artifact (leoda-flow-editor) marcando el nodo como "done" con thumbnail si aplica.`;
+  }
+  function buildBatchRunPrompt(ids) {
+    const nodes = ids.map(id => state.nodes[id]);
+    const conns = state.connections.filter(c => ids.includes(c.fromId) || ids.includes(c.toId));
+    const graph = {nodes, connections: conns, total_cost: nodes.reduce((acc,n) => acc + NODE_DEFS[n.type].cost(n), 0)};
+    return `Ejecutar este sub-flow en orden topológico:\n\n\`\`\`json\n${JSON.stringify(graph, null, 2)}\n\`\`\`\n\nAplica PRE-FLIGHT CHECKLIST. Actualiza este artifact (leoda-flow-editor) tras cada nodo completado.`;
+  }
+  function sendToClaude(msg) {
+    if (window.sendPrompt) window.sendPrompt(msg);
+    else {
+      const ta = document.createElement("textarea");
+      ta.value = msg; ta.style.cssText="position:fixed;top:40px;left:40px;width:600px;height:400px;z-index:99999;background:#fff;border:2px solid #f0c382;padding:10px;font-family:monospace;font-size:11px;";
+      document.body.appendChild(ta); ta.select();
+      setTimeout(() => ta.remove(), 30000);
+    }
+  }
+
+  // ===========================================================================
+  // RENDER NODES (SVG + HTML overlays)
+  // ===========================================================================
+  function render() {
+    const nodesLayer = document.getElementById("nodes-layer");
+    const connLayer = document.getElementById("connections-layer");
+    nodesLayer.innerHTML = "";
+    connLayer.innerHTML = "";
+    const overlayContainer = document.getElementById("node-overlay-container");
+    if (overlayContainer) overlayContainer.innerHTML = "";
+
+    // CONNECTIONS
+    state.connections.forEach((c, idx) => {
+      if (!state.nodes[c.fromId] || !state.nodes[c.toId]) return;
+      const from = getPortPos(state.nodes[c.fromId], false, c.fromPortIdx);
+      const to = getPortPos(state.nodes[c.toId], true, c.toPortIdx);
+      const dx = Math.max(40, Math.abs(to.x - from.x) * 0.5);
+      const svgNS = "http://www.w3.org/2000/svg";
+      const cp1x = from.x + dx, cp1y = from.y;
+      const cp2x = to.x - dx, cp2y = to.y;
+      // Bezier cúbico midpoint en t=0.5: B(0.5) = (P0 + 3*P1 + 3*P2 + P3) / 8
+      const midX = (from.x + 3*cp1x + 3*cp2x + to.x) / 8;
+      const midY = (from.y + 3*cp1y + 3*cp2y + to.y) / 8;
+
+      // Group para hover state
+      const cg = document.createElementNS(svgNS, "g");
+      cg.setAttribute("class", "conn-group");
+
+      // Hit area más ancha (transparente, para hover/click más fácil)
+      const hit = document.createElementNS(svgNS, "path");
+      const pathD = `M ${from.x} ${from.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${to.x} ${to.y}`;
+      hit.setAttribute("d", pathD);
+      hit.setAttribute("class", "conn-hit");
+      cg.appendChild(hit);
+
+      // Cable visible
+      const path = document.createElementNS(svgNS, "path");
+      path.setAttribute("d", pathD);
+      path.setAttribute("class", "connection");
+      cg.appendChild(path);
+
+      // Midpoint × button
+      const midGroup = document.createElementNS(svgNS, "g");
+      midGroup.setAttribute("class", "conn-midpoint");
+      midGroup.setAttribute("transform", `translate(${midX}, ${midY})`);
+      const circle = document.createElementNS(svgNS, "circle");
+      circle.setAttribute("cx", 0); circle.setAttribute("cy", 0); circle.setAttribute("r", 10);
+      midGroup.appendChild(circle);
+      const xMark = document.createElementNS(svgNS, "text");
+      xMark.setAttribute("x", 0); xMark.setAttribute("y", 5);
+      xMark.setAttribute("text-anchor", "middle");
+      xMark.setAttribute("class", "x-mark");
+      xMark.textContent = "×";
+      midGroup.appendChild(xMark);
+      midGroup.addEventListener("click", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        removeConnection(idx);
+      });
+      cg.appendChild(midGroup);
+
+      // Right-click también borra (alternativa rápida)
+      cg.addEventListener("contextmenu", (e) => {
+        e.preventDefault(); e.stopPropagation();
+        removeConnection(idx);
+      });
+
+      connLayer.appendChild(cg);
+    });
+
+    // NODES
+    Object.values(state.nodes).forEach(node => {
+      const def = NODE_DEFS[node.type];
+      if (!def) return;
+      const h = nodeHeight(node);
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("transform", `translate(${node.x},${node.y})`);
+      g.style.cursor = "move";
+
+      // Background
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("width", NODE_W);
+      rect.setAttribute("height", h);
+      rect.setAttribute("rx", 10);
+      let cls = "node-rect";
+      if (state.selected === node.id) cls += " selected";
+      if (node.status === "running" || node.status === "queued") cls += " running";
+      else if (node.status === "done") cls += " done";
+      else if (node.status === "failed") cls += " failed";
+      rect.setAttribute("class", cls);
+      g.appendChild(rect);
+
+      // Header
+      const hdrPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      hdrPath.setAttribute("d", `M 0 10 Q 0 0 10 0 L ${NODE_W-10} 0 Q ${NODE_W} 0 ${NODE_W} 10 L ${NODE_W} ${HEADER_H} L 0 ${HEADER_H} Z`);
+      hdrPath.setAttribute("fill", def.color);
+      g.appendChild(hdrPath);
+
+      // Header text (custom name)
+      const txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      txt.setAttribute("x", 12); txt.setAttribute("y", 21);
+      txt.setAttribute("fill", "#fff"); txt.setAttribute("font-size", "12");
+      txt.setAttribute("font-weight", "700");
+      const displayName = node.name.length > 24 ? node.name.substring(0, 22) + "…" : node.name;
+      txt.textContent = def.ico + " " + displayName;
+      g.appendChild(txt);
+
+      // Cost in header
+      const cost = def.cost(node);
+      if (cost > 0) {
+        const cb = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        cb.setAttribute("x", NODE_W - 8); cb.setAttribute("y", 21);
+        cb.setAttribute("fill", "#fff"); cb.setAttribute("font-size", "10");
+        cb.setAttribute("text-anchor", "end");
+        cb.setAttribute("font-weight", "600");
+        cb.textContent = "$" + cost.toFixed(2);
+        g.appendChild(cb);
+      }
+
+      // Status dot
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      const dotX = cost > 0 ? NODE_W - 56 : NODE_W - 16;
+      dot.setAttribute("cx", dotX); dot.setAttribute("cy", 16); dot.setAttribute("r", 4);
+      const dotColor = node.status === "done" ? "#4ade80" : (node.status === "running" || node.status === "queued") ? "#fbbf24" : node.status === "failed" ? "#ef4444" : "rgba(255,255,255,0.3)";
+      dot.setAttribute("fill", dotColor); dot.setAttribute("stroke", "#fff"); dot.setAttribute("stroke-width", "1.5");
+      g.appendChild(dot);
+
+      // Ports
+      const portCount = Math.max(def.inputs.length, def.outputs.length, 1);
+      def.inputs.forEach((p, i) => {
+        const yLocal = HEADER_H + PORT_AREA_H * (i + 0.5);
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", 0); c.setAttribute("cy", yLocal);
+        c.setAttribute("r", 6); c.setAttribute("class", "port in");
+        c.addEventListener("mousedown", (e) => e.stopPropagation());
+        c.addEventListener("mouseup", (e) => { e.stopPropagation(); finishConnect(node.id, i, "in"); });
+        g.appendChild(c);
+        const lbl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        lbl.setAttribute("x", 12); lbl.setAttribute("y", yLocal + 3);
+        lbl.setAttribute("fill", "#756d5d"); lbl.setAttribute("font-size", "10");
+        lbl.textContent = p.name + (p.multi ? " (multi)" : "") + (p.optional ? " (opt)" : "");
+        g.appendChild(lbl);
+      });
+      def.outputs.forEach((p, i) => {
+        const yLocal = HEADER_H + PORT_AREA_H * (i + 0.5);
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        c.setAttribute("cx", NODE_W); c.setAttribute("cy", yLocal);
+        c.setAttribute("r", 6); c.setAttribute("class", "port out");
+        c.addEventListener("mousedown", (e) => { e.stopPropagation(); startConnect(node.id, i, "out"); });
+        g.appendChild(c);
+        const lbl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        lbl.setAttribute("x", NODE_W - 12); lbl.setAttribute("y", yLocal + 3);
+        lbl.setAttribute("fill", "#756d5d"); lbl.setAttribute("font-size", "10");
+        lbl.setAttribute("text-anchor", "end");
+        lbl.textContent = p.name;
+        g.appendChild(lbl);
+      });
+
+      // Body — preview block (siempre presente, varía por tipo)
+      let bodyTop = HEADER_H + (portCount * PORT_AREA_H) + BODY_PADDING_TOP;
+      const previewType = def.previewType || "text";
+      const PREVIEW_W = NODE_W - 24;
+      const previewX = 12;
+      let previewH = 0;
+
+      // SVG NS shortcut
+      const svgNS = "http://www.w3.org/2000/svg";
+
+      function placeholderBox(h, ico, label, bgFill) {
+        previewH = h;
+        const bg = document.createElementNS(svgNS, "rect");
+        bg.setAttribute("x", previewX); bg.setAttribute("y", bodyTop);
+        bg.setAttribute("width", PREVIEW_W); bg.setAttribute("height", h);
+        bg.setAttribute("rx", 6); bg.setAttribute("fill", bgFill);
+        g.appendChild(bg);
+        if (node.status === "running" || node.status === "queued") {
+          // Spinner: 3 dots animados
+          const cx = previewX + PREVIEW_W/2;
+          const cy = bodyTop + h/2;
+          for (let i = 0; i < 3; i++) {
+            const c = document.createElementNS(svgNS, "circle");
+            c.setAttribute("cx", cx - 14 + i*14); c.setAttribute("cy", cy);
+            c.setAttribute("r", 4); c.setAttribute("fill", "#f0c382");
+            const anim = document.createElementNS(svgNS, "animate");
+            anim.setAttribute("attributeName", "opacity");
+            anim.setAttribute("values", "0.3;1;0.3");
+            anim.setAttribute("dur", "1.2s");
+            anim.setAttribute("begin", (i*0.2) + "s");
+            anim.setAttribute("repeatCount", "indefinite");
+            c.appendChild(anim);
+            g.appendChild(c);
+          }
+          const t = document.createElementNS(svgNS, "text");
+          t.setAttribute("x", cx); t.setAttribute("y", cy + 24);
+          t.setAttribute("fill", "#756d5d"); t.setAttribute("font-size", "10");
+          t.setAttribute("text-anchor", "middle"); t.setAttribute("font-weight", "600");
+          t.textContent = "GENERATING...";
+          g.appendChild(t);
+        } else {
+          // Icono central + label
+          const ic = document.createElementNS(svgNS, "text");
+          ic.setAttribute("x", previewX + PREVIEW_W/2); ic.setAttribute("y", bodyTop + h/2 + 4);
+          ic.setAttribute("fill", "#a89e8a"); ic.setAttribute("font-size", "28");
+          ic.setAttribute("text-anchor", "middle");
+          ic.textContent = ico;
+          g.appendChild(ic);
+          const t = document.createElementNS(svgNS, "text");
+          t.setAttribute("x", previewX + PREVIEW_W/2); t.setAttribute("y", bodyTop + h - 12);
+          t.setAttribute("fill", "#a89e8a"); t.setAttribute("font-size", "10");
+          t.setAttribute("text-anchor", "middle"); t.setAttribute("font-weight", "600");
+          t.setAttribute("font-family", "ui-monospace, monospace");
+          t.textContent = label;
+          g.appendChild(t);
+        }
+        bodyTop += h + 8;
+      }
+
+      function imageThumb(h, withPlay) {
+        previewH = h;
+        const clipId = "clip-" + node.id;
+        const clip = document.createElementNS(svgNS, "clipPath");
+        clip.setAttribute("id", clipId);
+        const cr = document.createElementNS(svgNS, "rect");
+        cr.setAttribute("x", previewX); cr.setAttribute("y", bodyTop);
+        cr.setAttribute("width", PREVIEW_W); cr.setAttribute("height", h); cr.setAttribute("rx", 6);
+        clip.appendChild(cr); g.appendChild(clip);
+        const img = document.createElementNS(svgNS, "image");
+        img.setAttribute("href", node.thumbnail);
+        img.setAttribute("x", previewX); img.setAttribute("y", bodyTop);
+        img.setAttribute("width", PREVIEW_W); img.setAttribute("height", h);
+        img.setAttribute("preserveAspectRatio", "xMidYMid slice");
+        img.setAttribute("clip-path", `url(#${clipId})`);
+        g.appendChild(img);
+        if (withPlay) {
+          // Dark overlay + play icon
+          const ov = document.createElementNS(svgNS, "rect");
+          ov.setAttribute("x", previewX); ov.setAttribute("y", bodyTop);
+          ov.setAttribute("width", PREVIEW_W); ov.setAttribute("height", h);
+          ov.setAttribute("rx", 6);
+          ov.setAttribute("fill", "rgba(0,0,0,0.3)");
+          g.appendChild(ov);
+          const cx = previewX + PREVIEW_W/2, cy = bodyTop + h/2;
+          const playBg = document.createElementNS(svgNS, "circle");
+          playBg.setAttribute("cx", cx); playBg.setAttribute("cy", cy);
+          playBg.setAttribute("r", 18); playBg.setAttribute("fill", "rgba(255,255,255,0.9)");
+          g.appendChild(playBg);
+          const play = document.createElementNS(svgNS, "polygon");
+          play.setAttribute("points", `${cx-5},${cy-7} ${cx-5},${cy+7} ${cx+8},${cy}`);
+          play.setAttribute("fill", "#1c1a18");
+          g.appendChild(play);
+          // duration badge bottom-right
+          if (node.fields.duration) {
+            const durBg = document.createElementNS(svgNS, "rect");
+            durBg.setAttribute("x", previewX + PREVIEW_W - 38); durBg.setAttribute("y", bodyTop + h - 22);
+            durBg.setAttribute("width", 30); durBg.setAttribute("height", 14); durBg.setAttribute("rx", 3);
+            durBg.setAttribute("fill", "rgba(0,0,0,0.7)");
+            g.appendChild(durBg);
+            const durT = document.createElementNS(svgNS, "text");
+            durT.setAttribute("x", previewX + PREVIEW_W - 23); durT.setAttribute("y", bodyTop + h - 12);
+            durT.setAttribute("fill", "#fff"); durT.setAttribute("font-size", "9");
+            durT.setAttribute("text-anchor", "middle"); durT.setAttribute("font-weight", "700");
+            durT.textContent = node.fields.duration + "s";
+            g.appendChild(durT);
+          }
+        }
+        bodyTop += h + 8;
+      }
+
+      function waveformPreview(h, label) {
+        previewH = h;
+        const bg = document.createElementNS(svgNS, "rect");
+        bg.setAttribute("x", previewX); bg.setAttribute("y", bodyTop);
+        bg.setAttribute("width", PREVIEW_W); bg.setAttribute("height", h);
+        bg.setAttribute("rx", 6); bg.setAttribute("fill", "#1c1a18");
+        g.appendChild(bg);
+        // Bars
+        const barCount = 28;
+        const seed = parseInt(node.id.slice(1)) * 13 + 7;
+        const bars = waveformBars(seed, barCount);
+        const barW = (PREVIEW_W - 24) / barCount;
+        bars.forEach((v, i) => {
+          const bh = v * (h - 28);
+          const bx = previewX + 12 + i * barW;
+          const by = bodyTop + (h - bh) / 2;
+          const bar = document.createElementNS(svgNS, "rect");
+          bar.setAttribute("x", bx + 1); bar.setAttribute("y", by);
+          bar.setAttribute("width", Math.max(1, barW - 2)); bar.setAttribute("height", bh);
+          bar.setAttribute("rx", 1); bar.setAttribute("fill", "#f0c382");
+          bar.setAttribute("opacity", node.status === "done" ? 1 : 0.5);
+          g.appendChild(bar);
+        });
+        // Play button bottom-left
+        const cx = previewX + 16, cy = bodyTop + h - 12;
+        const playBg = document.createElementNS(svgNS, "circle");
+        playBg.setAttribute("cx", cx); playBg.setAttribute("cy", cy);
+        playBg.setAttribute("r", 8); playBg.setAttribute("fill", "rgba(255,255,255,0.9)");
+        g.appendChild(playBg);
+        const play = document.createElementNS(svgNS, "polygon");
+        play.setAttribute("points", `${cx-2},${cy-3} ${cx-2},${cy+3} ${cx+3},${cy}`);
+        play.setAttribute("fill", "#1c1a18");
+        g.appendChild(play);
+        // Duration text
+        const durT = document.createElementNS(svgNS, "text");
+        durT.setAttribute("x", previewX + PREVIEW_W - 12); durT.setAttribute("y", bodyTop + h - 9);
+        durT.setAttribute("fill", "rgba(255,255,255,0.8)"); durT.setAttribute("font-size", "10");
+        durT.setAttribute("text-anchor", "end"); durT.setAttribute("font-weight", "600");
+        durT.setAttribute("font-family", "ui-monospace, monospace");
+        durT.textContent = label || (node.fields.duration ? (node.fields.duration + "s") : "0:00");
+        g.appendChild(durT);
+        bodyTop += h + 8;
+      }
+
+      function voicePreview(h) {
+        previewH = h;
+        const bg = document.createElementNS(svgNS, "rect");
+        bg.setAttribute("x", previewX); bg.setAttribute("y", bodyTop);
+        bg.setAttribute("width", PREVIEW_W); bg.setAttribute("height", h);
+        bg.setAttribute("rx", 6); bg.setAttribute("fill", "#faf6ed");
+        bg.setAttribute("stroke", "#e8e2d4");
+        g.appendChild(bg);
+        // Avatar circle
+        const ax = previewX + 22, ay = bodyTop + h/2;
+        const av = document.createElementNS(svgNS, "circle");
+        av.setAttribute("cx", ax); av.setAttribute("cy", ay); av.setAttribute("r", 14);
+        av.setAttribute("fill", "#8b6ac4");
+        g.appendChild(av);
+        const ic = document.createElementNS(svgNS, "text");
+        ic.setAttribute("x", ax); ic.setAttribute("y", ay + 5);
+        ic.setAttribute("fill", "#fff"); ic.setAttribute("font-size", "14");
+        ic.setAttribute("text-anchor", "middle");
+        ic.textContent = "🗣";
+        g.appendChild(ic);
+        // Voice name
+        const vn = document.createElementNS(svgNS, "text");
+        vn.setAttribute("x", ax + 22); vn.setAttribute("y", ay - 2);
+        vn.setAttribute("fill", "#1c1a18"); vn.setAttribute("font-size", "11");
+        vn.setAttribute("font-weight", "700");
+        vn.textContent = node.fields.name || "Voice";
+        g.appendChild(vn);
+        const vs = document.createElementNS(svgNS, "text");
+        vs.setAttribute("x", ax + 22); vs.setAttribute("y", ay + 12);
+        vs.setAttribute("fill", "#756d5d"); vs.setAttribute("font-size", "9");
+        vs.setAttribute("font-family", "ui-monospace, monospace");
+        vs.textContent = node.status === "done" ? "voice_id ✓" : "pending";
+        g.appendChild(vs);
+        bodyTop += h + 8;
+      }
+
+      function timelinePreview(h) {
+        previewH = h;
+        const bg = document.createElementNS(svgNS, "rect");
+        bg.setAttribute("x", previewX); bg.setAttribute("y", bodyTop);
+        bg.setAttribute("width", PREVIEW_W); bg.setAttribute("height", h);
+        bg.setAttribute("rx", 6); bg.setAttribute("fill", "#1c1a18");
+        g.appendChild(bg);
+        // Count connected inputs
+        const inConn = state.connections.filter(c => c.toId === node.id);
+        const trackH = (h - 16) / 4;
+        const trackTypes = ["v1","v2","v3","a1"];
+        trackTypes.forEach((tn, ti) => {
+          const ty = bodyTop + 8 + ti * trackH;
+          const conn = inConn.find(c => def.inputs[c.toPortIdx]?.name === tn);
+          const occupied = !!conn;
+          const trackBg = document.createElementNS(svgNS, "rect");
+          trackBg.setAttribute("x", previewX + 8); trackBg.setAttribute("y", ty);
+          trackBg.setAttribute("width", PREVIEW_W - 16); trackBg.setAttribute("height", trackH - 4);
+          trackBg.setAttribute("rx", 3);
+          trackBg.setAttribute("fill", occupied ? (tn.startsWith("v") ? "#c4664a" : "#8b6ac4") : "rgba(255,255,255,0.08)");
+          g.appendChild(trackBg);
+          const lbl = document.createElementNS(svgNS, "text");
+          lbl.setAttribute("x", previewX + 12); lbl.setAttribute("y", ty + trackH/2 + 2);
+          lbl.setAttribute("fill", "rgba(255,255,255,0.9)"); lbl.setAttribute("font-size", "9");
+          lbl.setAttribute("font-weight", "700"); lbl.setAttribute("font-family", "ui-monospace, monospace");
+          lbl.textContent = tn.toUpperCase() + (occupied ? " ✓" : "");
+          g.appendChild(lbl);
+        });
+        bodyTop += h + 8;
+      }
+
+      // Tipos de nodos input: el preview area abre file picker al click
+      const isInputNode = (node.type === "input-image" || node.type === "input-audio" || node.type === "input-text");
+      const previewStartY = bodyTop;
+
+      // Render preview block según tipo
+      if (previewType === "image") {
+        if (node.thumbnail) imageThumb(95, false);
+        else placeholderBox(75, "🖼", isInputNode ? "CLICK PARA SUBIR" : "IMAGE OUTPUT", "#faf6ed");
+      } else if (previewType === "video") {
+        if (node.thumbnail) imageThumb(110, true);
+        else placeholderBox(85, "🎬", isInputNode ? "CLICK PARA SUBIR" : "VIDEO OUTPUT", "#fbeee5");
+      } else if (previewType === "audio") {
+        if (isInputNode && !node.fields.uploaded) {
+          placeholderBox(60, "🎙", "CLICK PARA SUBIR AUDIO", "#faf6ed");
+        } else {
+          waveformPreview(60, null);
+        }
+      } else if (previewType === "speech") {
+        waveformPreview(60, node.fields.text ? "speech" : null);
+      } else if (previewType === "voice") {
+        voicePreview(50);
+      } else if (previewType === "timeline") {
+        timelinePreview(70);
+      } else if (previewType === "text") {
+        // No bloque visual extra para text — el prompt preview ya muestra el contenido
+        previewH = 0;
+      }
+
+      // Click handler para nodos input: abre file picker
+      if (isInputNode && previewH > 0) {
+        const clickArea = document.createElementNS(svgNS, "rect");
+        clickArea.setAttribute("x", previewX);
+        clickArea.setAttribute("y", previewStartY);
+        clickArea.setAttribute("width", PREVIEW_W);
+        clickArea.setAttribute("height", previewH);
+        clickArea.setAttribute("fill", "transparent");
+        clickArea.style.cursor = "pointer";
+        clickArea.addEventListener("click", (e) => {
+          e.stopPropagation();
+          openFilePickerForNode(node.id);
+        });
+        clickArea.addEventListener("mousedown", (e) => e.stopPropagation());
+        // Hover hint: borde ámbar suave al pasar el mouse
+        clickArea.addEventListener("mouseenter", () => {
+          clickArea.setAttribute("stroke", "#f0c382");
+          clickArea.setAttribute("stroke-width", "2");
+          clickArea.setAttribute("stroke-dasharray", "4 3");
+        });
+        clickArea.addEventListener("mouseleave", () => {
+          clickArea.removeAttribute("stroke");
+          clickArea.removeAttribute("stroke-width");
+          clickArea.removeAttribute("stroke-dasharray");
+        });
+        g.appendChild(clickArea);
+      }
+
+      // Preview text (prompt)
+      const previewKey = def.fields[0]?.key;
+      if (previewKey && node.fields[previewKey] !== undefined && node.fields[previewKey] !== "") {
+        const fullText = String(node.fields[previewKey]);
+        const charsPerLine = 34;
+        const lines = [];
+        let remaining = fullText;
+        while (remaining.length > 0 && lines.length < 4) {
+          if (remaining.length <= charsPerLine) { lines.push(remaining); break; }
+          let cut = remaining.lastIndexOf(" ", charsPerLine);
+          if (cut < 16) cut = charsPerLine;
+          lines.push(remaining.substring(0, cut).trim());
+          remaining = remaining.substring(cut).trim();
+        }
+        if (remaining.length > 0 && lines.length === 4) {
+          const last = lines[3];
+          lines[3] = last.substring(0, charsPerLine - 1) + "…";
+        }
+        lines.forEach((line, li) => {
+          const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          t.setAttribute("x", 12); t.setAttribute("y", bodyTop + li * PREVIEW_LINE_H + 10);
+          t.setAttribute("fill", "#1c1a18"); t.setAttribute("font-size", "11");
+          t.textContent = line;
+          g.appendChild(t);
+        });
+      }
+
+      // Footer: id · type
+      const info = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      info.setAttribute("x", 12); info.setAttribute("y", h - 8);
+      info.setAttribute("fill", "#a89e8a"); info.setAttribute("font-size", "9");
+      info.setAttribute("font-family", "ui-monospace, monospace");
+      info.textContent = node.id + " · " + node.type + (node.status !== "idle" ? " · " + node.status : "");
+      g.appendChild(info);
+
+      // Drag and select
+      g.addEventListener("mousedown", (e) => {
+        if (e.target.classList.contains("port")) return;
+        e.stopPropagation();
+        selectNode(node.id);
+        const pt = svgPoint(e);
+        dragging = {nodeId: node.id, dx: pt.x - node.x, dy: pt.y - node.y};
+      });
+      g.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        startRenameNode(node.id);
+      });
+      g.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ctxNodeId = node.id;
+        selectNode(node.id);
+        const menu = document.getElementById("contextMenu");
+        menu.style.left = e.clientX + "px";
+        menu.style.top = e.clientY + "px";
+        menu.classList.add("open");
+      });
+
+      // Botón Run dentro del SVG (foreignObject — se mueve con el nodo automáticamente)
+      const foRun = document.createElementNS(svgNS, "foreignObject");
+      foRun.setAttribute("x", 12);
+      foRun.setAttribute("y", h - 44);
+      foRun.setAttribute("width", NODE_W - 24);
+      foRun.setAttribute("height", 32);
+      const btnHtml = document.createElement("button");
+      btnHtml.style.cssText = "width:100%;background:#f0c382;color:#1c1a18;border:none;border-radius:6px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;";
+      if (node.status === "done") { btnHtml.innerHTML = "✓ Re-run"; btnHtml.style.background = "#a3d4a3"; }
+      else if (node.status === "running" || node.status === "queued") { btnHtml.innerHTML = "⏳ Running..."; btnHtml.style.background = "#ddd"; btnHtml.style.cursor = "not-allowed"; }
+      else if (node.status === "failed") { btnHtml.innerHTML = "↻ Retry"; btnHtml.style.background = "#f9d4d4"; }
+      else { btnHtml.innerHTML = "▶ Run"; }
+      btnHtml.disabled = (node.status === "queued" || node.status === "running");
+      btnHtml.onclick = (e) => { e.stopPropagation(); runNode(node.id); };
+      btnHtml.onmousedown = (e) => e.stopPropagation();
+      foRun.appendChild(btnHtml);
+      g.appendChild(foRun);
+
+      nodesLayer.appendChild(g);
+    });
+
+    renderProps();
+    updateCost();
+    updateToolButtons();
+  }
+
+  function updateOverlayPositions() {
+    // Ya no hay HTML overlays — el botón Run está dentro del SVG con foreignObject
+    // Esta función queda como no-op para compatibilidad con applyViewport()
+  }
+
+  function startRenameNode(id) {
+    const n = state.nodes[id];
+    if (!n) return;
+    const newName = prompt("Nuevo nombre del nodo:", n.name);
+    if (newName !== null && newName.trim()) renameNode(id, newName.trim());
+  }
+
+  // ===========================================================================
+  // PROPERTIES PANEL
+  // ===========================================================================
+  function renderProps() {
+    const content = document.getElementById("propsContent");
+    if (!state.selected || !state.nodes[state.selected]) {
+      content.innerHTML = '<div class="props-empty"><span class="ico">🎛</span>Selecciona un nodo<br>para editar sus propiedades</div>';
+      document.getElementById("propsPanel").classList.remove("open");
+      return;
+    }
+    document.getElementById("propsPanel").classList.add("open");
+    const node = state.nodes[state.selected];
+    const def = NODE_DEFS[node.type];
+    let html = `
+      <div class="props-header">
+        <span class="ico">${def.ico}</span>
+        <div class="ttl">${node.name} <span class="props-status-badge ${node.status}">${node.status}</span></div>
+        <button class="close" onclick="closeProps()">×</button>
+      </div>
+    `;
+    if (node.thumbnail) html += `<div class="props-thumb"><img src="${node.thumbnail}" /></div>`;
+    html += `<div class="props-field"><label>Nombre</label><input type="text" data-special="name" value="${node.name.replace(/"/g,'&quot;')}"></div>`;
+    def.fields.forEach(f => {
+      const v = node.fields[f.key];
+      html += `<div class="props-field"><label>${f.label}</label>`;
+      if (f.type === "textarea") html += `<textarea data-key="${f.key}">${(v||"").replace(/</g,"&lt;")}</textarea>`;
+      else if (f.type === "select") html += `<select data-key="${f.key}">${f.options.map(o => `<option value="${o}" ${o===v?"selected":""}>${o}</option>`).join("")}</select>`;
+      else if (f.type === "checkbox") html += `<input type="checkbox" data-key="${f.key}" ${v?"checked":""}>`;
+      else if (f.type === "number") html += `<input type="number" data-key="${f.key}" value="${v}" min="${f.min||0}" max="${f.max||9999}" step="${f.step||1}">`;
+      else html += `<input type="text" data-key="${f.key}" value="${(v||"").replace(/"/g,'&quot;')}">`;
+      html += `</div>`;
+    });
+    const cost = def.cost(node);
+    if (cost > 0) html += `<div style="margin-top:14px; padding:10px; background:#fff8e1; border-radius:6px; font-size:11px;">Costo estimado: <b style="color:#8b5a1a;">$${cost.toFixed(2)} USD</b></div>`;
+    html += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:14px;">
+      <button onclick="runNode('${node.id}')" style="padding:8px; background:#f0c382; color:#1c1a18; border:none; border-radius:6px; font-weight:700; cursor:pointer; font-size:11px;">▶ Run</button>
+      <button onclick="runFromHere('${node.id}')" style="padding:8px; background:#1c1a18; color:#fff; border:none; border-radius:6px; font-weight:700; cursor:pointer; font-size:11px;">▶▶ Run from here</button>
+      <button onclick="duplicateNode('${node.id}')" style="padding:8px; background:transparent; color:#1c1a18; border:1px solid #1c1a18; border-radius:6px; font-weight:600; cursor:pointer; font-size:11px;">⧉ Duplicate</button>
+      <button onclick="removeNode('${node.id}')" style="padding:8px; background:transparent; color:#8b1a1a; border:1px solid #d4a3a3; border-radius:6px; font-weight:600; cursor:pointer; font-size:11px;">🗑 Delete</button>
+    </div>`;
+    content.innerHTML = html;
+    content.querySelectorAll("[data-key], [data-special]").forEach(el => {
+      const evt = (el.tagName === "TEXTAREA" || el.type === "text" || el.type === "number") ? "input" : "change";
+      el.addEventListener(evt, () => {
+        let val;
+        if (el.type === "checkbox") val = el.checked;
+        else if (el.type === "number") val = parseFloat(el.value);
+        else val = el.value;
+        if (el.dataset.special === "name") { node.name = val; }
+        else node.fields[el.dataset.key] = val;
+        updateCost();
+        render();
+      });
+    });
+  }
+  function closeProps() {
+    state.selected = null;
+    render();
+  }
+
+  // ===========================================================================
+  // CONTEXT MENU
+  // ===========================================================================
+  function ctxAction(action) {
+    if (!ctxNodeId) return;
+    document.getElementById("contextMenu").classList.remove("open");
+    const id = ctxNodeId;
+    if (action === "run") runNode(id);
+    else if (action === "run-from-here") runFromHere(id);
+    else if (action === "rename") startRenameNode(id);
+    else if (action === "duplicate") duplicateNode(id);
+    else if (action === "properties") selectNode(id);
+    else if (action === "delete") { if (confirm("¿Borrar nodo?")) removeNode(id); }
+    else if (action === "download") alert("Descarga: el nodo " + id + " no tiene output todavía. Run primero.");
+    else if (action === "replace") alert("Replace: usa el panel de propiedades para cambiar las propiedades del nodo.");
+    ctxNodeId = null;
+  }
+
+  // ===========================================================================
+  // VIEWPORT (zoom + pan)
+  // ===========================================================================
+  function applyViewport() {
+    const g = document.getElementById("viewport-transform");
+    g.setAttribute("transform", `translate(${state.viewport.x},${state.viewport.y}) scale(${state.viewport.zoom})`);
+    document.getElementById("zoomLevel").textContent = Math.round(state.viewport.zoom * 100) + "%";
+    updateOverlayPositions();
+  }
+  function adjustZoom(delta, centerX, centerY) {
+    const oldZ = state.viewport.zoom;
+    const newZ = Math.max(0.2, Math.min(3, oldZ + delta));
+    if (newZ === oldZ) return;
+    if (centerX === undefined) {
+      const rect = document.getElementById("canvas").getBoundingClientRect();
+      centerX = rect.width / 2; centerY = rect.height / 2;
+    }
+    const canvasX = (centerX - state.viewport.x) / oldZ;
+    const canvasY = (centerY - state.viewport.y) / oldZ;
+    state.viewport.zoom = newZ;
+    state.viewport.x = centerX - canvasX * newZ;
+    state.viewport.y = centerY - canvasY * newZ;
+    applyViewport();
+  }
+  function resetView() { state.viewport = {x:0,y:0,zoom:1}; applyViewport(); }
+  function fitToScreen() {
+    const nodes = Object.values(state.nodes);
+    if (nodes.length === 0) { resetView(); return; }
+    let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+    nodes.forEach(n => {
+      minX = Math.min(minX, n.x); minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x + NODE_W); maxY = Math.max(maxY, n.y + nodeHeight(n));
+    });
+    const rect = document.getElementById("canvas").getBoundingClientRect();
+    const pad = 60;
+    const w = maxX - minX, h = maxY - minY;
+    const z = Math.min((rect.width - pad*2)/w, (rect.height - pad*2)/h, 1);
+    state.viewport.zoom = z;
+    state.viewport.x = pad - minX * z + (rect.width - pad*2 - w * z) / 2;
+    state.viewport.y = pad - minY * z + (rect.height - pad*2 - h * z) / 2;
+    applyViewport();
+  }
+  function svgPoint(evt) {
+    const rect = document.getElementById("canvas").getBoundingClientRect();
+    return {
+      x: (evt.clientX - rect.left - state.viewport.x) / state.viewport.zoom,
+      y: (evt.clientY - rect.top - state.viewport.y) / state.viewport.zoom
+    };
+  }
+
+  // ===========================================================================
+  // TOOL MODES
+  // ===========================================================================
+  function setTool(t) {
+    currentTool = t;
+    updateToolButtons();
+    const canvas = document.getElementById("canvas");
+    if (t === "pan") canvas.style.cursor = "grab";
+    else canvas.style.cursor = "default";
+  }
+  function updateToolButtons() {
+    ["select","pan","comment"].forEach(t => {
+      const btn = document.getElementById("tool-"+t);
+      if (btn) btn.classList.toggle("active", currentTool === t);
+    });
+  }
+
+  // ===========================================================================
+  // FLOWS AGENT CHAT
+  // ===========================================================================
+  function toggleAgent() {
+    document.getElementById("agentPanel").classList.toggle("open");
+    renderAgentMsgs();
+  }
+  function renderAgentMsgs() {
+    const body = document.getElementById("agentBody");
+    let html = '<div class="agent-msg bot">Hola Elian. Soy tu Flows Agent. Describe lo que quieres y construyo el flow contigo. Por ejemplo: "agrega una escena de intro" o "haz un trailer del pintor".</div>';
+    state.agentMessages.forEach(m => {
+      html += `<div class="agent-msg ${m.role}">${m.text.replace(/</g,"&lt;")}</div>`;
+    });
+    body.innerHTML = html;
+    body.scrollTop = body.scrollHeight;
+  }
+  function sendAgentMsg(text) {
+    if (!text || !text.trim()) return;
+    state.agentMessages.push({role: "user", text: text});
+    renderAgentMsgs();
+    document.getElementById("agentInput").value = "";
+
+    // Build context: current flow state + user request
+    const context = `Estoy editando un Leoda Flow llamado "${state.flowName || 'Untitled'}". Estado actual:\n\n\`\`\`json\n${JSON.stringify({nodes: state.nodes, connections: state.connections}, null, 2)}\n\`\`\`\n\nUsuario pide: "${text}"\n\nResponde editando el flow: agrega/quita nodos, modifica prompts, ajusta conexiones según lo que pide. Después de hacer cambios, actualiza este artifact (leoda-flow-editor) con el nuevo estado. NO ejecutes nada con fal.ai sin que el usuario apruebe explícitamente.`;
+
+    sendToClaude(context);
+    state.agentMessages.push({role: "bot", text: "Entendido. Procesando tu pedido y actualizando el flow..."});
+    renderAgentMsgs();
+  }
+
+  // ===========================================================================
+  // FILE UPLOAD
+  // ===========================================================================
+  function handleFileUpload(e) {
+    const files = e.target.files;
+    for (const file of files) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        let type = "input-text";
+        if (file.type.startsWith("image/")) type = "input-image";
+        else if (file.type.startsWith("audio/")) type = "input-audio";
+        const id = addNode(type, 100 + Math.random() * 200, 100 + Math.random() * 200);
+        const n = state.nodes[id];
+        n.fields.label = file.name;
+        if (type === "input-image") n.thumbnail = ev.target.result;
+        if (type === "input-audio") { n.fields.uploaded = true; n.fields.dataUrl = ev.target.result; n.status = "done"; }
+        if (type === "input-text" && typeof ev.target.result === "string") n.fields.text = ev.target.result;
+        render();
+      };
+      if (file.type.startsWith("image/")) reader.readAsDataURL(file);
+      else if (file.type.startsWith("audio/")) reader.readAsDataURL(file);
+      else reader.readAsText(file);
+    }
+    e.target.value = "";
+  }
+
+  // Abre el file picker para un nodo input específico (click en el preview area)
+  function openFilePickerForNode(nodeId) {
+    const node = state.nodes[nodeId];
+    if (!node) return;
+    let accept = "*/*";
+    if (node.type === "input-image") accept = "image/*";
+    else if (node.type === "input-audio") accept = "audio/*";
+    else if (node.type === "input-text") accept = ".txt,.md,.json,text/*";
+
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.style.display = "none";
+    document.body.appendChild(input);
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) { input.remove(); return; }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (node.type === "input-image") {
+          node.thumbnail = ev.target.result;
+          node.fields.label = file.name;
+          node.fields.url = file.name;
+          node.status = "done";
+        } else if (node.type === "input-audio") {
+          node.fields.label = file.name;
+          node.fields.dataUrl = ev.target.result;
+          node.fields.uploaded = true;
+          node.status = "done";
+        } else if (node.type === "input-text") {
+          node.fields.text = typeof ev.target.result === "string" ? ev.target.result : "(binary)";
+          node.status = "done";
+        }
+        render();
+        input.remove();
+      };
+      reader.onerror = () => { alert("Error leyendo archivo"); input.remove(); };
+      if (node.type === "input-image" || node.type === "input-audio") reader.readAsDataURL(file);
+      else reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  // ===========================================================================
+  // CANVAS EVENTS
+  // ===========================================================================
+  const canvas = document.getElementById("canvas");
+  const canvasWrap = document.querySelector(".canvas-wrap");
+
+  canvasWrap.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    adjustZoom(e.deltaY > 0 ? -0.1 : 0.1, e.clientX - rect.left, e.clientY - rect.top);
+  }, {passive: false});
+
+  canvas.addEventListener("mousedown", (e) => {
+    if (e.target === canvas || e.target.id === "viewport-transform" || e.target.id === "connections-layer" || e.target.id === "nodes-layer" || e.target.id === "overlay-layer") {
+      state.selected = null;
+      panning = {sx: e.clientX, sy: e.clientY, vx: state.viewport.x, vy: state.viewport.y};
+      canvas.classList.add("panning");
+      document.getElementById("contextMenu").classList.remove("open");
+      render();
+    }
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (panning) {
+      state.viewport.x = panning.vx + (e.clientX - panning.sx);
+      state.viewport.y = panning.vy + (e.clientY - panning.sy);
+      applyViewport();
+      return;
+    }
+    if (dragging) {
+      const pt = svgPoint(e);
+      const node = state.nodes[dragging.nodeId];
+      if (node) {
+        node.x = pt.x - dragging.dx;
+        node.y = pt.y - dragging.dy;
+        render();
+      }
+    }
+    if (connecting) {
+      const pt = svgPoint(e);
+      const from = getPortPos(state.nodes[connecting.fromId], false, connecting.fromPortIdx);
+      const dx2 = Math.max(40, Math.abs(pt.x - from.x) * 0.5);
+      const overlay = document.getElementById("overlay-layer");
+      overlay.innerHTML = `<path d="M ${from.x} ${from.y} C ${from.x+dx2} ${from.y}, ${pt.x-dx2} ${pt.y}, ${pt.x} ${pt.y}" class="connection preview" />`;
+    }
+  });
+
+  canvas.addEventListener("mouseup", () => {
+    dragging = null; connecting = null; panning = null;
+    canvas.classList.remove("panning");
+    document.getElementById("overlay-layer").innerHTML = "";
+  });
+
+  // Close context menu on outside click
+  document.addEventListener("click", (e) => {
+    const menu = document.getElementById("contextMenu");
+    if (!menu.contains(e.target)) menu.classList.remove("open");
+  });
+
+  // Drag-and-drop files anywhere on canvas
+  canvasWrap.addEventListener("dragover", (e) => e.preventDefault());
+  canvasWrap.addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length > 0) {
+      const fakeEvt = {target: {files: e.dataTransfer.files, value: ""}};
+      handleFileUpload(fakeEvt);
+      return;
+    }
+  });
+
+  // Keyboard shortcuts
+  window.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (state.selected) { e.preventDefault(); if (confirm("¿Borrar nodo?")) removeNode(state.selected); }
+    }
+    if (e.key === "v") setTool("select");
+    if (e.key === "h") setTool("pan");
+    if (e.key === "c") setTool("comment");
+  });
+
+  // Rename flow name on Enter
+  document.getElementById("flowName").addEventListener("blur", () => { state.flowName = document.getElementById("flowName").value; });
+  document.getElementById("flowName").addEventListener("keydown", (e) => { if (e.key === "Enter") e.target.blur(); });
+
+  // ===========================================================================
+  // SEED EXAMPLE
+  // ===========================================================================
+  function seedExample() {
+    state.flowName = "Trailer Pintor · Mona Lisa";
+    document.getElementById("flowName").value = state.flowName;
+    const refId = addNode("input-image", 80, 120);
+    state.nodes[refId].name = "Pintor reference";
+    state.nodes[refId].fields.label = "Pintor (subir foto)";
+    const v1 = addNode("video-gen", 420, 80);
+    state.nodes[v1].name = "Frame 1 · Cámara sube";
+    state.nodes[v1].fields.prompt = "Cinematic low-angle dolly UP from waist to head, painter from behind facing white canvas, clock ticking";
+    const v2 = addNode("video-gen", 420, 320);
+    state.nodes[v2].name = "Frame 2 · Mona Lisa";
+    state.nodes[v2].fields.prompt = "STATIC head-height time-lapse, Mona Lisa materializes on canvas, clock spinning fast";
+    const v3 = addNode("video-gen", 420, 560);
+    state.nodes[v3].name = "Frame 3 · Pincel LEODA.IO";
+    state.nodes[v3].fields.prompt = "Close-up brush rotating, LEODA.IO engraved revealed, chime, fade to black";
+    const comp = addNode("composition", 800, 280);
+    state.nodes[comp].name = "Trailer final";
+    state.nodes[comp].fields.filename = "TRAILER_PINTOR_v2";
+    // Connections
+    state.connections.push({fromId: refId, fromPortIdx: 0, toId: v1, toPortIdx: 0});
+    state.connections.push({fromId: v1, fromPortIdx: 0, toId: comp, toPortIdx: 0});
+    state.connections.push({fromId: v2, fromPortIdx: 0, toId: comp, toPortIdx: 1});
+    state.connections.push({fromId: v3, fromPortIdx: 0, toId: comp, toPortIdx: 2});
+    render();
+    setTimeout(fitToScreen, 50);
+  }
+
+  // ===========================================================================
+  // INIT
+  // ===========================================================================
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      state = JSON.parse(saved);
+      nextId = Math.max(0, ...Object.keys(state.nodes).map(s => parseInt(s.slice(1))||0)) + 1;
+      if (!state.viewport) state.viewport = {x:0,y:0,zoom:1};
+      if (!state.agentMessages) state.agentMessages = [];
+      if (!state.flowName) state.flowName = "Untitled Flow";
+      document.getElementById("flowName").value = state.flowName;
+      render(); applyViewport();
+    } else {
+      seedExample();
+      applyViewport();
+    }
+  } catch(e) { seedExample(); applyViewport(); }
+  updateToolButtons();
+</script>
+</body>
+</html>

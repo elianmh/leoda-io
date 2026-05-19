@@ -1,6 +1,6 @@
 {
   "name": "leoda-io-marketplace",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Leoda.io — pipeline automatizado de marketing visual con IA generativa premium. Pérgolas modernas para tu marca: briefs, imágenes, videos cinematográficos con audio nativo + lip-sync, voice cloning, SFX, captions bilingües.",
   "owner": {
     "name": "Elian",
@@ -10,7 +10,10 @@
     {
       "name": "leoda-io",
       "source": "./",
-      "description": "Pipeline de marketing visual con Nano Banana, Seedance 2.0 (audio nativo + lip-sync), MiniMax voice clone, Stable Audio SFX, ElevenLabs TTS. Briefs bilingües, imágenes hero, videos cinematográficos hasta 15s, trailers cinematográficos con xfade, voces clonadas, sound design, captions ES+EN, calendario semanal. v0.3.0 incluye PRE-FLIGHT CHECKLIST para ahorrar créditos fal.ai.",
-      "version": "0.3.0",
+      "description": "Pipeline de marketing visual con Nano Banana, Seedance 2.0, MiniMax voice clone, Stable Audio SFX, Eleven Music vía fal.ai. v0.4.0 incluye Flow Editor visual estilo ElevenLabs Flows: canvas infinito con nodos drag-and-drop, conexiones Bezier, Run individual por nodo, Run from here, Flows Agent chat, preview rico por tipo (imagen/video/waveform/timeline). Trailers cinematográficos, storyboards, voces clonadas, captions ES+EN, calendario semanal.",
+      "version": "0.4.0",
       "category": "marketing",
-      "tags": ["marketing", "video", 
+      "tags": ["marketing", "video", "image-generation", "voice-cloning", "social-media", "bilingual", "fal-ai"]
+    }
+  ]
+}
